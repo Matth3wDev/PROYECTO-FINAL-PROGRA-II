@@ -438,7 +438,7 @@ class DefenseZone3HD:
                 torre.dibujar(self.pantalla)
         for enemigo in self.enemigos:
             if hasattr(enemigo, 'dibujar'):
-                enemigo.dibujar(self.pantalla)
+                enemigo.blit(self.image, self.rect)
         for proyectil in self.proyectiles:
             if hasattr(proyectil, 'dibujar'):
                 proyectil.dibujar(self.pantalla)
