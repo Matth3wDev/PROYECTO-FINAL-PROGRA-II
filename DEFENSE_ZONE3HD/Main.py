@@ -147,7 +147,7 @@ class TorreCañon(TorreBase):
         super().__init__(x, y)
         self.costo = 50
         self.rango = 100
-        self.daño = 25
+        self.daño = 35
         self.intervalo_disparo = 1500
 
 class TorreMisil(TorreBase):
@@ -163,7 +163,7 @@ class TorreLaser(TorreBase):
         super().__init__(x, y)
         self.costo = 75
         self.rango = 80
-        self.daño = 20
+        self.daño = 65
         self.intervalo_disparo = 800
 
 class GeneradorOleadas:
@@ -568,9 +568,9 @@ class DefenseZone3HD:
         self.estado_juego = EstadoJuego.JUGANDO
         self.generador_oleadas = GeneradorOleadas(self.dificultad)
         modificadores_dificultad = {
-            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 25},
-            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 20},
-            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 15}
+            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 5},
+            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 3},
+            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 1}
         }
         mods = modificadores_dificultad[self.dificultad]
         self.gestor_recursos.recursos.update(mods)
