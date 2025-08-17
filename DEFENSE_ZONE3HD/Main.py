@@ -6,7 +6,6 @@ import threading
 from enum import Enum
 from typing import List, Dict, Optional
 
-
 from Enemigo import Enemigo, EnemigoBasico, EnemigoRapido, EnemigoTanque
 from torres import torres
 from misiles import misiles
@@ -46,7 +45,6 @@ class NivelDificultad(Enum):
     MEDIO = 2
     DIFICIL = 3
 
-
 class GestorRecursos:
     def __init__(self, dinero: int = 0, vidas: int = 0):
         self.recursos = {"dinero": dinero, "vidas": vidas}
@@ -63,7 +61,6 @@ class GestorRecursos:
 
     def obtener(self, clave: str) -> int:
         return self.recursos.get(clave, 0)
-
 
 class TorreBase(torres):
     def __init__(self, x: int, y: int):
@@ -89,6 +86,7 @@ class TorreBase(torres):
 
     def disparar(self, objetivo: Enemigo, lista_proyectiles: List[misiles]):
         proyectil = misiles(self.x, self.y, objetivo.x, objetivo.y)
+        proyectil.daño = self.daño  # Asignar daño del proyectil
         lista_proyectiles.append(proyectil)
         self.ultimo_disparo = pygame.time.get_ticks()
 
@@ -115,7 +113,6 @@ class TorreLaser(TorreBase):
         self.rango = 80
         self.daño = 20
         self.intervalo_disparo = 800
-
 
 class GeneradorOleadas:
     def __init__(self, dificultad: NivelDificultad):
@@ -155,7 +152,6 @@ class GeneradorOleadas:
         else:
             raise StopIteration
 
-
 class DefenseZone3HD:
     def __init__(self):
         self.pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
@@ -184,11 +180,11 @@ class DefenseZone3HD:
 
         self.tareas_async = []
         self.gestor_recursos = GestorRecursos(dinero=200, vidas=20)
-        self.interfaz = Interfaz(self.pantalla, self.fuente, self.fuente_pequeña)  # <--- Instancia de Interfaz
+        self.interfaz = Interfaz(self.pantalla, self.fuente, self.fuente_pequeña)
 
     def manejar_eventos(self):
         for evento in pygame.event.get():
-            # --- Manejo de interfaz ---
+            
             if self.estado_juego == EstadoJuego.MENU:
                 resultado = self.interfaz.manejar_evento(evento, "MENU")
                 if resultado == "SALIR":
@@ -277,9 +273,9 @@ class DefenseZone3HD:
         self.estado_juego = EstadoJuego.JUGANDO
         self.generador_oleadas = GeneradorOleadas(self.dificultad)
         modificadores_dificultad = {
-            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 25},
-            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 20},
-            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 15}
+            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 5},
+            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 3},
+            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 1}
         }
         mods = modificadores_dificultad[self.dificultad]
         self.gestor_recursos.recursos.update(mods)
@@ -323,14 +319,13 @@ class DefenseZone3HD:
         for enemigo in self.enemigos[:]:
             enemigo.actualizar(dt)
             if not enemigo.activo:
+                
                 if hasattr(enemigo, 'indice_ruta') and enemigo.indice_ruta >= len(enemigo.ruta) - 1:
                     self.gestor_recursos.gastar('vidas', 1)
                     vidas_actuales = self.gestor_recursos.obtener('vidas')
                     if vidas_actuales <= 0:
                         self.estado_juego = EstadoJuego.GAME_OVER
-                else:
-                    if hasattr(enemigo, 'recompensa'):
-                        self.gestor_recursos.ganar('dinero', enemigo.recompensa)
+                
                 self.enemigos.remove(enemigo)
 
         tiempo_actual = pygame.time.get_ticks()
@@ -341,6 +336,22 @@ class DefenseZone3HD:
 
         for proyectil in self.proyectiles[:]:
             proyectil.actualizar(dt)
+            
+            
+            for enemigo in self.enemigos[:]:
+                if enemigo.activo and proyectil.activo:
+                    
+                    distancia = math.sqrt((proyectil.x - enemigo.x)**2 + (proyectil.y - enemigo.y)**2)
+                    if distancia < 20:  
+                        
+                        daño_proyectil = getattr(proyectil, 'daño', 25)  
+                        enemigo_muerto = enemigo.recibir_daño(daño_proyectil)
+                        proyectil.activo = False  
+                        
+                        if enemigo_muerto:
+                            self.gestor_recursos.ganar('dinero', enemigo.recompensa)
+                        break  
+            
             if not proyectil.activo:
                 self.proyectiles.remove(proyectil)
 
@@ -360,7 +371,6 @@ class DefenseZone3HD:
             hilo.daemon = True
             hilo.start()
 
-    
     def dibujar(self):
         self.pantalla.fill(BLANCO)
         if self.estado_juego == EstadoJuego.MENU:
@@ -399,7 +409,7 @@ class DefenseZone3HD:
 
     def dibujar_tutorial(self):
         texto_tutorial = [
-            "TUT0RIAL - Defense Zone 3 HD",
+            "TUTORIAL - Defense Zone 3 HD",
             "",
             "Objetivo: Defiende tu base de las oleadas de enemigos",
             "",
@@ -411,9 +421,9 @@ class DefenseZone3HD:
             "- ESC: Pausar juego / Volver al menú",
             "",
             "Tipos de enemigos:",
-            "- Rojos: Enemigos básicos (100 HP, velocidad normal)",
-            "- Amarillos: Enemigos rápidos (60 HP, velocidad alta)",
-            "- Grises: Enemigos tanque (300 HP, velocidad baja)",
+            "- Rojos: Enemigos básicos (50 HP, velocidad normal)",
+            "- Amarillos: Enemigos rápidos (30 HP, velocidad alta)",
+            "- Grises: Enemigos tanque (120 HP, velocidad baja)",
             "",
             "Niveles de Dificultad:",
             "- Fácil: Más dinero y vidas",
@@ -431,17 +441,25 @@ class DefenseZone3HD:
             y_offset += 30
 
     def dibujar_juego(self):
+        
         if len(self.camino) > 1:
             pygame.draw.lines(self.pantalla, GRIS, False, self.camino, 5)
+        
+        
         for torre in self.torres:
             if hasattr(torre, 'dibujar'):
                 torre.dibujar(self.pantalla)
+        
+        
         for enemigo in self.enemigos:
             if hasattr(enemigo, 'dibujar'):
                 enemigo.dibujar(self.pantalla)
+        
+        
         for proyectil in self.proyectiles:
             if hasattr(proyectil, 'dibujar'):
                 proyectil.dibujar(self.pantalla)
+        
         self.dibujar_ui()
 
     def dibujar_ui(self):
@@ -451,6 +469,7 @@ class DefenseZone3HD:
         texto_vidas  = self.fuente_pequeña.render(f"Vidas: {vidas}", True, NEGRO)
         self.pantalla.blit(texto_dinero, (10, 10))
         self.pantalla.blit(texto_vidas, (10, 40))
+        
         info_torres = [
             ("1 - Cañón: $50", 'cañon'),
             ("2 - Misil: $100", 'misil'),
@@ -462,6 +481,7 @@ class DefenseZone3HD:
             texto_torre = self.fuente_pequeña.render(texto, True, color)
             self.pantalla.blit(texto_torre, (ANCHO_VENTANA - 200, y_offset))
             y_offset += 25
+        
         if self.generador_oleadas:
             texto_oleada = self.fuente_pequeña.render(f"Oleada: {self.generador_oleadas.numero_oleada}", True, NEGRO)
             self.pantalla.blit(texto_oleada, (10, 70))
@@ -494,7 +514,6 @@ class DefenseZone3HD:
         rect_reiniciar = texto_reiniciar.get_rect(center=(ANCHO_VENTANA//2, ALTO_VENTANA//2 + 70))
         self.pantalla.blit(texto_reiniciar, rect_reiniciar)
 
-    
     def ejecutar(self):
         while self.ejecutando:
             dt = self.reloj.tick(FPS)
@@ -508,4 +527,4 @@ if __name__ == "__main__":
         juego = DefenseZone3HD()
         juego.ejecutar()
     except Exception as e:
-        print(f"Error crítico del juego: {e}")
+        print(f"Error crítico del juego: {e}") 
