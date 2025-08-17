@@ -30,6 +30,9 @@ class Enemigo(Objetos):
         self._duracion_ralentizacion = 0.0
         self._modificador_daño = lambda daño: daño
         self._modificador_velocidad = lambda velocidad: velocidad
+        # --- EFECTO VISUAL DE DAÑO ---
+        self._recibio_daño = False
+        self._tiempo_daño = 0
 
     @property
     def vida(self) -> int:
@@ -74,6 +77,9 @@ class Enemigo(Objetos):
         daño_modificado = self._modificador_daño(daño)
         daño_final = self._calcular_resistencia_daño(daño_modificado, tipo_daño)
         self._vida -= daño_final
+        # --- EFECTO VISUAL DE DAÑO ---
+        self._recibio_daño = True
+        self._tiempo_daño = 150  # milisegundos de parpadeo
         if self._vida <= 0:
             self._vida = 0
             self.activo = False
@@ -102,6 +108,11 @@ class Enemigo(Objetos):
         return self._indice_ruta >= len(self._ruta) - 1
     
     def actualizar(self, dt: float):
+        # --- EFECTO VISUAL DE DAÑO ---
+        if self._recibio_daño:
+            self._tiempo_daño -= dt
+            if self._tiempo_daño <= 0:
+                self._recibio_daño = False
         if not self.activo or not self._ruta:
             return
         self._actualizar_efectos_estado(dt)
@@ -152,9 +163,11 @@ class Enemigo(Objetos):
         desplazamiento_tiempo = pygame.time.get_ticks() + self._desplazamiento_animacion
         factor_animacion = math.sin(desplazamiento_tiempo * 0.005) * 0.1 + 1.0
         tamaño_animado = int(self._tamaño * factor_animacion)
+        # --- EFECTO VISUAL DE DAÑO ---
+        color = (255, 0, 0) if self._recibio_daño else self._color
         pygame.draw.circle(
             pantalla, 
-            self._color, 
+            color, 
             (int(self.x), int(self.y)), 
             tamaño_animado
         )
@@ -191,7 +204,6 @@ class EnemigoBasico(Enemigo):
         super().__init__(x, y, vida=50, velocidad=50, recompensa=10, tipo_enemigo="basico")
         self._tamaño = 15
         
-    
     def _calcular_resistencia_daño(self, daño: int, tipo_daño: str) -> int:
         return daño
 
