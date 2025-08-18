@@ -3,6 +3,7 @@ import math
 from Objetos import Objetos
 from typing import List, Optional
 
+
 class torres(Objetos):
     """
     Clase base para todas las torres del juego.
