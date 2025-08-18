@@ -15,8 +15,6 @@ from interfaz import Interfaz
 from Objetos import Objetos
 from gestor_recursos import gestor_recursos
 
-
-
 pygame.init()
 
 # Configuración automática de resolución
@@ -37,6 +35,7 @@ else:
 
 FPS = 60
 
+# Colores
 BLANCO = (255, 255, 255)
 NEGRO  = (0, 0, 0)
 ROJO   = (255, 0, 0)
@@ -52,6 +51,7 @@ VERDE_OSCURO = (0, 100, 0)
 AZUL_OSCURO = (25, 25, 112)
 GRIS_CLARO_TUTORIAL = (248, 248, 255)
 
+# Enums
 class EstadoJuego(Enum):
     MENU = 1
     TUTORIAL = 2
@@ -64,6 +64,19 @@ class NivelDificultad(Enum):
     MEDIO = 2
     DIFICIL = 3
 
+class FaseTutorial(Enum):
+    INICIO = 0
+    INTERFAZ_BASICA = 1
+    COLOCAR_TORRE = 2
+    TIPOS_TORRES = 3
+    PRIMER_ENEMIGO = 4
+    RECURSOS_DINERO = 5
+    TIPOS_ENEMIGOS = 6
+    ESTRATEGIA = 7
+    OLEADAS = 8
+    VICTORIA = 9
+
+# Clases de apoyo
 class GestorRecursos:
     def __init__(self, dinero: int = 0, vidas: int = 0):
         self.recursos = {"dinero": dinero, "vidas": vidas}
@@ -81,7 +94,6 @@ class GestorRecursos:
     def obtener(self, clave: str) -> int:
         return self.recursos.get(clave, 0)
 
-# CLASE MISILES CORREGIDA CON SISTEMA DE COLISIONES
 class misiles:
     def __init__(self, x_inicio, y_inicio, x_objetivo, y_objetivo):
         self.x = float(x_inicio)
@@ -134,6 +146,7 @@ class misiles:
             pygame.draw.circle(pantalla, AMARILLO, (int(self.x), int(self.y)), 5)
             pygame.draw.circle(pantalla, NEGRO, (int(self.x), int(self.y)), 5, 2)
 
+# Clases de Torres
 class TorreBase(torres):
     def __init__(self, x: int, y: int):
         super().__init__(x, y)
@@ -186,6 +199,7 @@ class TorreLaser(TorreBase):
         self.daño = 65
         self.intervalo_disparo = 800
 
+# Generador de oleadas
 class GeneradorOleadas:
     def __init__(self, dificultad: NivelDificultad):
         self.dificultad = dificultad
@@ -224,19 +238,7 @@ class GeneradorOleadas:
         else:
             raise StopIteration
 
-# ----------- TUTORIAL INTERACTIVO MEJORADO -----------
-class FaseTutorial(Enum):
-    INICIO = 0
-    INTERFAZ_BASICA = 1
-    COLOCAR_TORRE = 2
-    TIPOS_TORRES = 3
-    PRIMER_ENEMIGO = 4
-    RECURSOS_DINERO = 5
-    TIPOS_ENEMIGOS = 6
-    ESTRATEGIA = 7
-    OLEADAS = 8
-    VICTORIA = 9
-
+# Sistema de Tutorial
 class ObjetivoTutorial:
     def __init__(self, descripcion: str, completado: bool = False):
         self.descripcion = descripcion
@@ -277,6 +279,14 @@ class TutorialInteractivo:
     def _cargar_fase(self):
         self.objetivos_actuales.clear()
         self.puede_continuar = False
+        
+        # Resetear temporizadores específicos de fase
+        if hasattr(self, 'tiempo_inicio_tipos_enemigos'):
+            delattr(self, 'tiempo_inicio_tipos_enemigos')
+        if hasattr(self, 'tiempo_inicio_estrategia'):
+            delattr(self, 'tiempo_inicio_estrategia')
+        if hasattr(self, 'tiempo_oleada_completada'):
+            delattr(self, 'tiempo_oleada_completada')
         
         if self.fase_actual == FaseTutorial.INICIO:
             self.mensaje_principal = "¡Bienvenido!"
@@ -321,10 +331,11 @@ class TutorialInteractivo:
                 ObjetivoTutorial("Elimina enemigos → más dinero"),
                 ObjetivoTutorial("Usa dinero sabiamente")
             ])
+            self._generar_enemigos_recursos()
             
         elif self.fase_actual == FaseTutorial.TIPOS_ENEMIGOS:
             self.mensaje_principal = "Tipos de Enemigos"
-            self.mensaje_secundario = "Cada uno es diferente"
+            self.mensaje_secundario = "Observa las diferencias"
             self.objetivos_actuales.extend([
                 ObjetivoTutorial("Rojo: Básico (50 HP)"),
                 ObjetivoTutorial("Amarillo: Rápido (30 HP)"),
@@ -364,6 +375,13 @@ class TutorialInteractivo:
             self.juego.enemigos.append(enemigo)
             self.enemigos_tutorial_spawneados += 1
 
+    def _generar_enemigos_recursos(self):
+        # Genera 2 enemigos básicos para esta fase
+        for i in range(2):
+            enemigo = EnemigoBasico(self.juego.camino[0][0], self.juego.camino[0][1])
+            enemigo.ruta = self.juego.camino
+            self.juego.enemigos.append(enemigo)
+
     def _generar_enemigos_variados(self):
         tipos = ['basico', 'rapido', 'tanque']
         for i, tipo in enumerate(tipos):
@@ -399,12 +417,6 @@ class TutorialInteractivo:
         hilo.daemon = True
         hilo.start()
 
-    def actualizar(self, dt: float):
-        if not self.activo:
-            return
-        self._verificar_objetivos()
-        self._logica_fase_especifica(dt)
-
     def _verificar_objetivos(self):
         if self.fase_actual == FaseTutorial.INTERFAZ_BASICA:
             for objetivo in self.objetivos_actuales:
@@ -425,6 +437,7 @@ class TutorialInteractivo:
                     tipos_colocados.add('misil')
                 elif isinstance(torre, TorreLaser):
                     tipos_colocados.add('laser')
+            
             # Marcar objetivos como completados según el tipo
             for objetivo in self.objetivos_actuales:
                 if "Cañón" in objetivo.descripcion and 'cañon' in tipos_colocados:
@@ -438,39 +451,122 @@ class TutorialInteractivo:
             enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
             if self.enemigos_tutorial_spawneados > 0 and enemigos_activos == 0:
                 self.objetivos_actuales[0].completar()
-                
-        elif self.fase_actual == FaseTutorial.ESTRATEGIA:
-            if len(self.juego.torres) >= 3:
-                self.objetivos_actuales[2].completar()
-                
-        elif self.fase_actual == FaseTutorial.OLEADAS:
-            if len(self.juego.enemigos) == 0:
-                self.objetivos_actuales[0].completar()
-                
-        elif self.fase_actual == FaseTutorial.COLOCAR_TORRE:
-            if len(self.juego.torres) > self.torres_colocadas:
-                self.torres_colocadas = len(self.juego.torres)
-                self.objetivos_actuales[0].completar()
-                
-        elif self.fase_actual == FaseTutorial.PRIMER_ENEMIGO:
+        
+        elif self.fase_actual == FaseTutorial.RECURSOS_DINERO:
             enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
-            if self.enemigos_tutorial_spawneados > 0 and enemigos_activos == 0:
-                self.objetivos_actuales[0].completar()
+            # Completar objetivos automáticamente después de un tiempo
+            for i, objetivo in enumerate(self.objetivos_actuales):
+                if i == 0:  # Objetivo del dinero - siempre completado
+                    objetivo.completar()
+                elif "Elimina enemigos" in objetivo.descripcion and enemigos_activos == 0:
+                    objetivo.completar()
+                elif "Usa dinero" in objetivo.descripcion:
+                    # Se completa automáticamente después de eliminar enemigos
+                    if enemigos_activos == 0:
+                        objetivo.completar()
+        
+        elif self.fase_actual == FaseTutorial.TIPOS_ENEMIGOS:
+            # En esta fase, los objetivos son informativos
+            # Se completan automáticamente después de unos segundos
+            # o cuando todos los enemigos han sido eliminados
+            enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
+            
+            # Si no hay enemigos activos, completar todos los objetivos
+            if enemigos_activos == 0:
+                for objetivo in self.objetivos_actuales:
+                    objetivo.completar()
+            else:
+                # Completar objetivos gradualmente conforme aparecen/eliminan enemigos
+                tipos_enemigos_vistos = set()
+                for enemigo in self.juego.enemigos:
+                    if hasattr(enemigo, '__class__'):
+                        if 'Basico' in enemigo.__class__.__name__:
+                            tipos_enemigos_vistos.add('basico')
+                        elif 'Rapido' in enemigo.__class__.__name__:
+                            tipos_enemigos_vistos.add('rapido')
+                        elif 'Tanque' in enemigo.__class__.__name__:
+                            tipos_enemigos_vistos.add('tanque')
                 
+                # Completar objetivos según los tipos vistos
+                for objetivo in self.objetivos_actuales:
+                    if "Básico" in objetivo.descripcion and 'basico' in tipos_enemigos_vistos:
+                        objetivo.completar()
+                    elif "Rápido" in objetivo.descripcion and 'rapido' in tipos_enemigos_vistos:
+                        objetivo.completar()
+                    elif "Tanque" in objetivo.descripcion and 'tanque' in tipos_enemigos_vistos:
+                        objetivo.completar()
+        
         elif self.fase_actual == FaseTutorial.ESTRATEGIA:
-            if len(self.juego.torres) >= 3:
-                self.objetivos_actuales[2].completar()
-                
+            # Completar objetivos según las condiciones
+            for i, objetivo in enumerate(self.objetivos_actuales):
+                if i == 0 and len(self.juego.torres) > 0:  # Torres en curvas
+                    objetivo.completar()
+                elif i == 1 and len(self.juego.torres) >= 2:  # Diversifica tipos
+                    # Verificar que hay al menos 2 tipos diferentes
+                    tipos_torres = set()
+                    for torre in self.juego.torres:
+                        if isinstance(torre, TorreCañon):
+                            tipos_torres.add('cañon')
+                        elif isinstance(torre, TorreMisil):
+                            tipos_torres.add('misil')
+                        elif isinstance(torre, TorreLaser):
+                            tipos_torres.add('laser')
+                    if len(tipos_torres) >= 2:
+                        objetivo.completar()
+                elif i == 2 and len(self.juego.torres) >= 3:  # Mínimo 3 torres
+                    objetivo.completar()
+                    
         elif self.fase_actual == FaseTutorial.OLEADAS:
-            if len(self.juego.enemigos) == 0:
-                self.objetivos_actuales[0].completar()
+            enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
+            if enemigos_activos == 0:
+                # Dar un pequeño delay para asegurar que la oleada terminó
+                import time
+                if not hasattr(self, 'tiempo_oleada_completada'):
+                    self.tiempo_oleada_completada = time.time()
+                elif time.time() - self.tiempo_oleada_completada > 2:  # 2 segundos de delay
+                    self.objetivos_actuales[0].completar()
+
+        elif self.fase_actual == FaseTutorial.VICTORIA:
+            # Los objetivos de victoria se manejan en el evento de teclado
+            pass
 
     def _logica_fase_especifica(self, dt: float):
         if self.fase_actual == FaseTutorial.RECURSOS_DINERO:
             dinero_actual = self.juego.gestor_recursos.obtener('dinero')
             self.objetivos_actuales[0].descripcion = f"Dinero: ${dinero_actual}"
         
+        elif self.fase_actual == FaseTutorial.TIPOS_ENEMIGOS:
+            # Lógica especial para la fase de tipos de enemigos
+            if not hasattr(self, 'tiempo_inicio_tipos_enemigos'):
+                self.tiempo_inicio_tipos_enemigos = pygame.time.get_ticks()
+            
+            tiempo_transcurrido = pygame.time.get_ticks() - self.tiempo_inicio_tipos_enemigos
+            
+            # Después de 5 segundos, completar objetivos automáticamente si no hay enemigos
+            if tiempo_transcurrido > 5000:  # 5 segundos
+                enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
+                if enemigos_activos == 0:
+                    for objetivo in self.objetivos_actuales:
+                        objetivo.completar()
+        
+        elif self.fase_actual == FaseTutorial.ESTRATEGIA:
+            # Auto-completar después de cierto tiempo si se cumplen condiciones mínimas
+            if not hasattr(self, 'tiempo_inicio_estrategia'):
+                self.tiempo_inicio_estrategia = pygame.time.get_ticks()
+            
+            tiempo_transcurrido = pygame.time.get_ticks() - self.tiempo_inicio_estrategia
+            if tiempo_transcurrido > 10000 and len(self.juego.torres) >= 1:  # 10 segundos y al menos 1 torre
+                for objetivo in self.objetivos_actuales:
+                    objetivo.completar()
+        
+        # Verificar si se puede continuar
         self.puede_continuar = all(obj.completado for obj in self.objetivos_actuales)
+
+    def actualizar(self, dt: float):
+        if not self.activo:
+            return
+        self._verificar_objetivos()
+        self._logica_fase_especifica(dt)
 
     def manejar_evento(self, evento) -> bool:
         if not self.activo:
@@ -629,7 +725,7 @@ class TutorialInteractivo:
             pygame.draw.rect(pantalla, VERDE_OSCURO, fondo, 2)
             pantalla.blit(superficie, rect)
 
-# ----------- JUEGO PRINCIPAL -----------
+# Clase principal del juego
 class DefenseZone3HD:
     def __init__(self):
         # Configurar pantalla con resolución automática
@@ -752,9 +848,9 @@ class DefenseZone3HD:
         self.estado_juego = EstadoJuego.JUGANDO
         self.generador_oleadas = GeneradorOleadas(self.dificultad)
         modificadores_dificultad = {
-            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 5},
-            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 3},
-            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 1}
+            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 25},
+            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 20},
+            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 15}
         }
         mods = modificadores_dificultad[self.dificultad]
         self.gestor_recursos.recursos.update(mods)
@@ -1058,4 +1154,4 @@ if __name__ == "__main__":
         juego = DefenseZone3HD()
         juego.ejecutar()
     except Exception as e:
-        print(f"Error crítico del juego: {e}") 
+        print(f"Error crítico del juego: {e}")
