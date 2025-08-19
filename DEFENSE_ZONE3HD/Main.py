@@ -16,6 +16,14 @@ from Objetos import Objetos
 from gestor_recursos import gestor_recursos
 
 pygame.init()
+pygame.mixer.init()
+
+# Cargar música de fondo
+try:
+    pygame.mixer.music.load("sonidos/Arcade_Game_Musica.mp3")
+    pygame.mixer.music.play(-1)
+except pygame.error:
+    print("No se pudo cargar la música de fondo")
 
 # Configuración automática de resolución
 info = pygame.display.Info()
@@ -154,6 +162,7 @@ class TorreBase(torres):
         self.ultimo_disparo = 0
         self.intervalo_disparo = 1000
         self.objetivo = None
+        self.tipo = None
 
     def puede_disparar(self, tiempo_actual: int) -> bool:
         return tiempo_actual - self.ultimo_disparo >= self.intervalo_disparo
@@ -169,11 +178,17 @@ class TorreBase(torres):
                     objetivo_mas_cercano = enemigo
         return objetivo_mas_cercano
 
-    def disparar(self, objetivo: Enemigo, lista_proyectiles: List[misiles]):
+    def disparar(self, objetivo: Enemigo, lista_proyectiles: List[misiles], sonidos_disparo: Dict[str, pygame.mixer.Sound]):
         proyectil = misiles(self.x, self.y, objetivo.x, objetivo.y)
         proyectil.daño = self.daño  # Asignar daño del proyectil
         lista_proyectiles.append(proyectil)
         self.ultimo_disparo = pygame.time.get_ticks()
+        # Reproducir sonido de disparo
+        if self.tipo in sonidos_disparo:
+            try:
+                sonidos_disparo[self.tipo].play()
+            except pygame.error:
+                pass  # Si no se puede reproducir el sonido, continuar sin error
 
 class TorreCañon(TorreBase):
     def __init__(self, x: int, y: int):
@@ -182,6 +197,7 @@ class TorreCañon(TorreBase):
         self.rango = 100
         self.daño = 35
         self.intervalo_disparo = 1500
+        self.tipo = 'cañon'
 
 class TorreMisil(TorreBase):
     def __init__(self, x: int, y: int):
@@ -190,6 +206,7 @@ class TorreMisil(TorreBase):
         self.rango = 120
         self.daño = 50
         self.intervalo_disparo = 2000
+        self.tipo = 'misil'
 
 class TorreLaser(TorreBase):
     def __init__(self, x: int, y: int):
@@ -198,6 +215,7 @@ class TorreLaser(TorreBase):
         self.rango = 80
         self.daño = 65
         self.intervalo_disparo = 800
+        self.tipo = 'laser'
 
 # Generador de oleadas
 class GeneradorOleadas:
@@ -779,6 +797,23 @@ class DefenseZone3HD:
         self.gestor_recursos = GestorRecursos(dinero=200, vidas=20)
         self.interfaz = Interfaz(self.pantalla, self.fuente, self.fuente_pequeña)
         self.tutorial = TutorialInteractivo(self)
+        
+        # Sistema de sonidos integrado
+        self.sonidos_disparo = {}
+        self._cargar_sonidos()
+
+    def _cargar_sonidos(self):
+        """Cargar todos los sonidos del juego"""
+        try:
+            self.sonidos_disparo = {
+                'cañon': pygame.mixer.Sound("sonidos/Canon.mp3"),
+                'misil': pygame.mixer.Sound("sonidos/Misil.mp3"),
+                'laser': pygame.mixer.Sound("sonidos/Laser.mp3")
+            }
+        except pygame.error:
+            print("No se pudieron cargar los sonidos de disparo")
+            # Crear diccionario vacío si no se pueden cargar los sonidos
+            self.sonidos_disparo = {}
 
     def manejar_eventos(self):
         for evento in pygame.event.get():
@@ -848,9 +883,9 @@ class DefenseZone3HD:
         self.estado_juego = EstadoJuego.JUGANDO
         self.generador_oleadas = GeneradorOleadas(self.dificultad)
         modificadores_dificultad = {
-            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 25},
-            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 20},
-            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 15}
+            NivelDificultad.FACIL: {'dinero': 300, 'vidas': 5},
+            NivelDificultad.MEDIO: {'dinero': 200, 'vidas': 3},
+            NivelDificultad.DIFICIL: {'dinero': 150, 'vidas': 1}
         }
         mods = modificadores_dificultad[self.dificultad]
         self.gestor_recursos.recursos.update(mods)
@@ -940,12 +975,12 @@ class DefenseZone3HD:
                         self.gestor_recursos.ganar('dinero', 15)
                 self.enemigos.remove(enemigo)
         
-        # Actualizar torres
+        # Actualizar torres CON SONIDOS
         tiempo_actual = pygame.time.get_ticks()
         for torre in self.torres:
             torre.objetivo = torre.encontrar_objetivo(self.enemigos)
             if torre.objetivo and torre.puede_disparar(tiempo_actual):
-                torre.disparar(torre.objetivo, self.proyectiles)
+                torre.disparar(torre.objetivo, self.proyectiles, self.sonidos_disparo)
         
         # Actualizar proyectiles Y verificar colisiones
         for proyectil in self.proyectiles[:]:
@@ -1154,4 +1189,4 @@ if __name__ == "__main__":
         juego = DefenseZone3HD()
         juego.ejecutar()
     except Exception as e:
-        print(f"Error crítico del juego: {e}")
+        print(f"Error crítico del juego: {e}") 
