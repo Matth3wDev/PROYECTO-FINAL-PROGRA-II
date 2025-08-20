@@ -18,32 +18,32 @@ from gestor_recursos import gestor_recursos
 pygame.init()
 pygame.mixer.init()
 
-# Cargar música de fondo
+
 try:
     pygame.mixer.music.load("sonidos/Arcade_Game_Musica.mp3")
     pygame.mixer.music.play(-1)
 except pygame.error:
     print("No se pudo cargar la música de fondo")
 
-# Configuración automática de resolución
+
 info = pygame.display.Info()
 ANCHO_PANTALLA = info.current_w
 ALTO_PANTALLA = info.current_h
 
-# Usar resolución completa o windowed según preferencia
-USAR_PANTALLA_COMPLETA = True  # Cambiar a False para ventana
+
+USAR_PANTALLA_COMPLETA = True  
 
 if USAR_PANTALLA_COMPLETA:
     ANCHO_VENTANA = ANCHO_PANTALLA
     ALTO_VENTANA = ALTO_PANTALLA
 else:
-    # Resolución windowed optimizada (16:9)
+    
     ANCHO_VENTANA = min(1600, int(ANCHO_PANTALLA * 0.85))
     ALTO_VENTANA = min(900, int(ALTO_PANTALLA * 0.85))
 
 FPS = 60
 
-# Colores
+
 BLANCO = (255, 255, 255)
 NEGRO  = (0, 0, 0)
 ROJO   = (255, 0, 0)
@@ -54,12 +54,12 @@ GRIS        = (128, 128, 128)
 GRIS_OSCURO = (64, 64, 64)
 GRIS_CLARO  = (192, 192, 192)
 
-# Colores mejorados para el tutorial
+
 VERDE_OSCURO = (0, 100, 0)
 AZUL_OSCURO = (25, 25, 112)
 GRIS_CLARO_TUTORIAL = (248, 248, 255)
 
-# Enums
+
 class EstadoJuego(Enum):
     MENU = 1
     TUTORIAL = 2
@@ -84,7 +84,7 @@ class FaseTutorial(Enum):
     OLEADAS = 8
     VICTORIA = 9
 
-# Clases de apoyo
+
 class GestorRecursos:
     def __init__(self, dinero: int = 0, vidas: int = 0):
         self.recursos = {"dinero": dinero, "vidas": vidas}
@@ -108,12 +108,12 @@ class misiles:
         self.y = float(y_inicio)
         self.x_objetivo = float(x_objetivo)
         self.y_objetivo = float(y_objetivo)
-        self.velocidad = 300  # píxeles por segundo
+        self.velocidad = 300  
         self.activo = True
-        self.daño = 25  # daño base
-        self.radio_colision = 15  # radio para detectar colisiones
+        self.daño = 25  
+        self.radio_colision = 15  
         
-        # Calcular dirección
+        
         dx = self.x_objetivo - self.x
         dy = self.y_objetivo - self.y
         distancia = math.sqrt(dx*dx + dy*dy)
@@ -128,16 +128,16 @@ class misiles:
         if not self.activo:
             return
             
-        # Mover proyectil
+        
         self.x += self.vel_x * dt / 1000.0
         self.y += self.vel_y * dt / 1000.0
         
-        # Verificar si llegó al objetivo (aproximadamente)
+        
         distancia_objetivo = math.sqrt((self.x - self.x_objetivo)**2 + (self.y - self.y_objetivo)**2)
         if distancia_objetivo < 10:
             self.activo = False
         
-        # Verificar límites de pantalla
+        
         if self.x < 0 or self.x > ANCHO_VENTANA or self.y < 0 or self.y > ALTO_VENTANA:
             self.activo = False
     
@@ -154,7 +154,7 @@ class misiles:
             pygame.draw.circle(pantalla, AMARILLO, (int(self.x), int(self.y)), 5)
             pygame.draw.circle(pantalla, NEGRO, (int(self.x), int(self.y)), 5, 2)
 
-# Clases de Torres
+
 class TorreBase(torres):
     def __init__(self, x: int, y: int):
         super().__init__(x, y)
@@ -180,15 +180,15 @@ class TorreBase(torres):
 
     def disparar(self, objetivo: Enemigo, lista_proyectiles: List[misiles], sonidos_disparo: Dict[str, pygame.mixer.Sound]):
         proyectil = misiles(self.x, self.y, objetivo.x, objetivo.y)
-        proyectil.daño = self.daño  # Asignar daño del proyectil
+        proyectil.daño = self.daño  
         lista_proyectiles.append(proyectil)
         self.ultimo_disparo = pygame.time.get_ticks()
-        # Reproducir sonido de disparo
+        
         if self.tipo in sonidos_disparo:
             try:
                 sonidos_disparo[self.tipo].play()
             except pygame.error:
-                pass  # Si no se puede reproducir el sonido, continuar sin error
+                pass  
 
 class TorreCañon(TorreBase):
     def __init__(self, x: int, y: int):
@@ -217,7 +217,7 @@ class TorreLaser(TorreBase):
         self.intervalo_disparo = 800
         self.tipo = 'laser'
 
-# Generador de oleadas
+
 class GeneradorOleadas:
     def __init__(self, dificultad: NivelDificultad):
         self.dificultad = dificultad
@@ -256,7 +256,7 @@ class GeneradorOleadas:
         else:
             raise StopIteration
 
-# Sistema de Tutorial
+
 class ObjetivoTutorial:
     def __init__(self, descripcion: str, completado: bool = False):
         self.descripcion = descripcion
@@ -271,7 +271,7 @@ class TutorialInteractivo:
         self.activo = False
         self.fase_actual = FaseTutorial.INICIO
         
-        # Fuentes mejoradas
+        
         self.fuente_titulo = pygame.font.SysFont("arial", 24, bold=True)
         self.fuente_texto = pygame.font.SysFont("arial", 18)
         self.fuente_pequeña = pygame.font.SysFont("arial", 16, bold=True)
@@ -298,7 +298,7 @@ class TutorialInteractivo:
         self.objetivos_actuales.clear()
         self.puede_continuar = False
         
-        # Resetear temporizadores específicos de fase
+        
         if hasattr(self, 'tiempo_inicio_tipos_enemigos'):
             delattr(self, 'tiempo_inicio_tipos_enemigos')
         if hasattr(self, 'tiempo_inicio_estrategia'):
@@ -394,7 +394,7 @@ class TutorialInteractivo:
             self.enemigos_tutorial_spawneados += 1
 
     def _generar_enemigos_recursos(self):
-        # Genera 2 enemigos básicos para esta fase
+        
         for i in range(2):
             enemigo = EnemigoBasico(self.juego.camino[0][0], self.juego.camino[0][1])
             enemigo.ruta = self.juego.camino
@@ -446,7 +446,7 @@ class TutorialInteractivo:
                 self.objetivos_actuales[0].completar()
         
         elif self.fase_actual == FaseTutorial.TIPOS_TORRES:
-            # Detectar tipos de torres colocadas
+            
             tipos_colocados = set()
             for torre in self.juego.torres:
                 if isinstance(torre, TorreCañon):
@@ -456,7 +456,7 @@ class TutorialInteractivo:
                 elif isinstance(torre, TorreLaser):
                     tipos_colocados.add('laser')
             
-            # Marcar objetivos como completados según el tipo
+            
             for objetivo in self.objetivos_actuales:
                 if "Cañón" in objetivo.descripcion and 'cañon' in tipos_colocados:
                     objetivo.completar()
@@ -472,29 +472,29 @@ class TutorialInteractivo:
         
         elif self.fase_actual == FaseTutorial.RECURSOS_DINERO:
             enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
-            # Completar objetivos automáticamente después de un tiempo
+            
             for i, objetivo in enumerate(self.objetivos_actuales):
-                if i == 0:  # Objetivo del dinero - siempre completado
+                if i == 0:  
                     objetivo.completar()
                 elif "Elimina enemigos" in objetivo.descripcion and enemigos_activos == 0:
                     objetivo.completar()
                 elif "Usa dinero" in objetivo.descripcion:
-                    # Se completa automáticamente después de eliminar enemigos
+                    
                     if enemigos_activos == 0:
                         objetivo.completar()
         
         elif self.fase_actual == FaseTutorial.TIPOS_ENEMIGOS:
-            # En esta fase, los objetivos son informativos
-            # Se completan automáticamente después de unos segundos
-            # o cuando todos los enemigos han sido eliminados
+            
+            
+            
             enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
             
-            # Si no hay enemigos activos, completar todos los objetivos
+            
             if enemigos_activos == 0:
                 for objetivo in self.objetivos_actuales:
                     objetivo.completar()
             else:
-                # Completar objetivos gradualmente conforme aparecen/eliminan enemigos
+                
                 tipos_enemigos_vistos = set()
                 for enemigo in self.juego.enemigos:
                     if hasattr(enemigo, '__class__'):
@@ -505,7 +505,7 @@ class TutorialInteractivo:
                         elif 'Tanque' in enemigo.__class__.__name__:
                             tipos_enemigos_vistos.add('tanque')
                 
-                # Completar objetivos según los tipos vistos
+                
                 for objetivo in self.objetivos_actuales:
                     if "Básico" in objetivo.descripcion and 'basico' in tipos_enemigos_vistos:
                         objetivo.completar()
@@ -515,12 +515,12 @@ class TutorialInteractivo:
                         objetivo.completar()
         
         elif self.fase_actual == FaseTutorial.ESTRATEGIA:
-            # Completar objetivos según las condiciones
+            
             for i, objetivo in enumerate(self.objetivos_actuales):
-                if i == 0 and len(self.juego.torres) > 0:  # Torres en curvas
+                if i == 0 and len(self.juego.torres) > 0:  
                     objetivo.completar()
-                elif i == 1 and len(self.juego.torres) >= 2:  # Diversifica tipos
-                    # Verificar que hay al menos 2 tipos diferentes
+                elif i == 1 and len(self.juego.torres) >= 2:  
+                    
                     tipos_torres = set()
                     for torre in self.juego.torres:
                         if isinstance(torre, TorreCañon):
@@ -531,21 +531,21 @@ class TutorialInteractivo:
                             tipos_torres.add('laser')
                     if len(tipos_torres) >= 2:
                         objetivo.completar()
-                elif i == 2 and len(self.juego.torres) >= 3:  # Mínimo 3 torres
+                elif i == 2 and len(self.juego.torres) >= 3:  
                     objetivo.completar()
                     
         elif self.fase_actual == FaseTutorial.OLEADAS:
             enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
             if enemigos_activos == 0:
-                # Dar un pequeño delay para asegurar que la oleada terminó
+                
                 import time
                 if not hasattr(self, 'tiempo_oleada_completada'):
                     self.tiempo_oleada_completada = time.time()
-                elif time.time() - self.tiempo_oleada_completada > 2:  # 2 segundos de delay
+                elif time.time() - self.tiempo_oleada_completada > 2: 
                     self.objetivos_actuales[0].completar()
 
         elif self.fase_actual == FaseTutorial.VICTORIA:
-            # Los objetivos de victoria se manejan en el evento de teclado
+            
             pass
 
     def _logica_fase_especifica(self, dt: float):
@@ -554,30 +554,30 @@ class TutorialInteractivo:
             self.objetivos_actuales[0].descripcion = f"Dinero: ${dinero_actual}"
         
         elif self.fase_actual == FaseTutorial.TIPOS_ENEMIGOS:
-            # Lógica especial para la fase de tipos de enemigos
+            
             if not hasattr(self, 'tiempo_inicio_tipos_enemigos'):
                 self.tiempo_inicio_tipos_enemigos = pygame.time.get_ticks()
             
             tiempo_transcurrido = pygame.time.get_ticks() - self.tiempo_inicio_tipos_enemigos
             
-            # Después de 5 segundos, completar objetivos automáticamente si no hay enemigos
-            if tiempo_transcurrido > 5000:  # 5 segundos
+            
+            if tiempo_transcurrido > 5000:  
                 enemigos_activos = sum(1 for e in self.juego.enemigos if e.activo)
                 if enemigos_activos == 0:
                     for objetivo in self.objetivos_actuales:
                         objetivo.completar()
         
         elif self.fase_actual == FaseTutorial.ESTRATEGIA:
-            # Auto-completar después de cierto tiempo si se cumplen condiciones mínimas
+            
             if not hasattr(self, 'tiempo_inicio_estrategia'):
                 self.tiempo_inicio_estrategia = pygame.time.get_ticks()
             
             tiempo_transcurrido = pygame.time.get_ticks() - self.tiempo_inicio_estrategia
-            if tiempo_transcurrido > 10000 and len(self.juego.torres) >= 1:  # 10 segundos y al menos 1 torre
+            if tiempo_transcurrido > 10000 and len(self.juego.torres) >= 1:  
                 for objetivo in self.objetivos_actuales:
                     objetivo.completar()
         
-        # Verificar si se puede continuar
+        
         self.puede_continuar = all(obj.completado for obj in self.objetivos_actuales)
 
     def actualizar(self, dt: float):
@@ -622,16 +622,16 @@ class TutorialInteractivo:
         if not self.activo:
             return
         
-        # Panel principal compacto en esquina superior derecha
+        
         self._dibujar_panel_compacto(pantalla)
         
-        # Objetivos en barra inferior
+    
         self._dibujar_objetivos_minimalistas(pantalla)
         
-        # Barra de progreso
+        
         self._dibujar_progreso(pantalla)
         
-        # Indicador continuar
+        
         if self.puede_continuar:
             self._dibujar_indicador_continuar(pantalla)
 
@@ -640,22 +640,22 @@ class TutorialInteractivo:
         panel_ancho = int(280 * ANCHO_VENTANA / 1300)
         panel_alto = int(70 * ALTO_VENTANA / 800)
         panel_x = ANCHO_VENTANA - panel_ancho - int(20 * ANCHO_VENTANA / 1300)
-        panel_y = int(120 * ALTO_VENTANA / 800)  # Debajo de la info de torres
+        panel_y = int(120 * ALTO_VENTANA / 800)  
         
-        # Fondo semi-transparente
+        
         superficie = pygame.Surface((panel_ancho, panel_alto))
         superficie.set_alpha(220)
         superficie.fill(GRIS_CLARO_TUTORIAL)
         pantalla.blit(superficie, (panel_x, panel_y))
         
-        # Borde
+        
         pygame.draw.rect(pantalla, AZUL, (panel_x, panel_y, panel_ancho, panel_alto), 2)
         
-        # Título
+        
         titulo = self.fuente_titulo.render(self.mensaje_principal, True, AZUL_OSCURO)
         pantalla.blit(titulo, (panel_x + 8, panel_y + 8))
         
-        # Subtítulo
+        
         if self.mensaje_secundario:
             subtitulo = self.fuente_texto.render(self.mensaje_secundario, True, AZUL_OSCURO)
             pantalla.blit(subtitulo, (panel_x + 8, panel_y + 35))
@@ -670,31 +670,31 @@ class TutorialInteractivo:
         barra_x = int(20 * ANCHO_VENTANA / 1300)
         barra_y = ALTO_VENTANA - barra_alto - int(20 * ALTO_VENTANA / 800)
         
-        # Fondo
+        
         superficie = pygame.Surface((barra_ancho, barra_alto))
         superficie.set_alpha(200)
         superficie.fill(GRIS_CLARO_TUTORIAL)
         pantalla.blit(superficie, (barra_x, barra_y))
         
-        # Borde
+        
         pygame.draw.rect(pantalla, VERDE_OSCURO, (barra_x, barra_y, barra_ancho, barra_alto), 2)
         
-        # Título
+        
         titulo = self.fuente_pequeña.render("Objetivos:", True, VERDE_OSCURO)
         pantalla.blit(titulo, (barra_x + 8, barra_y + 6))
         
-        # Lista de objetivos
+        
         y_offset = 25
         for i, objetivo in enumerate(self.objetivos_actuales):
             color = VERDE_OSCURO if objetivo.completado else AZUL_OSCURO
             simbolo = "✓" if objetivo.completado else f"{i+1}."
             texto = f"{simbolo} {objetivo.descripcion}"
             
-            # Sombra para legibilidad
+            
             sombra = self.fuente_pequeña.render(texto, True, BLANCO)
             pantalla.blit(sombra, (barra_x + 11, barra_y + y_offset + 1))
             
-            # Texto principal
+            
             obj_surface = self.fuente_pequeña.render(texto, True, color)
             pantalla.blit(obj_surface, (barra_x + 10, barra_y + y_offset))
             y_offset += 22
@@ -704,20 +704,20 @@ class TutorialInteractivo:
         total_fases = len(FaseTutorial)
         fase_actual_num = list(FaseTutorial).index(self.fase_actual) + 1
         
-        # Barra
+        
         barra_ancho = 200
         barra_alto = 6
         barra_x = (ANCHO_VENTANA - barra_ancho) // 2
         barra_y = 12
         
-        # Fondo
+        
         pygame.draw.rect(pantalla, GRIS_CLARO, (barra_x, barra_y, barra_ancho, barra_alto))
         
-        # Progreso
+        
         progreso_ancho = int((fase_actual_num / total_fases) * barra_ancho)
         pygame.draw.rect(pantalla, VERDE_OSCURO, (barra_x, barra_y, progreso_ancho, barra_alto))
         
-        # Texto
+        
         texto_progreso = f"Tutorial: {fase_actual_num}/{total_fases}"
         superficie = self.fuente_pequeña.render(texto_progreso, True, AZUL_OSCURO)
         rect = superficie.get_rect(center=(ANCHO_VENTANA//2, barra_y + barra_alto + 12))
@@ -733,7 +733,7 @@ class TutorialInteractivo:
             rect.x = ANCHO_VENTANA - rect.width - 25
             rect.y = ALTO_VENTANA - rect.height - 15
             
-            # Fondo sutil
+            
             fondo = rect.inflate(12, 6)
             fondo_surf = pygame.Surface(fondo.size)
             fondo_surf.set_alpha(180)
@@ -743,10 +743,10 @@ class TutorialInteractivo:
             pygame.draw.rect(pantalla, VERDE_OSCURO, fondo, 2)
             pantalla.blit(superficie, rect)
 
-# Clase principal del juego
+
 class DefenseZone3HD:
     def __init__(self):
-        # Configurar pantalla con resolución automática
+        
         if USAR_PANTALLA_COMPLETA:
             self.pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA), pygame.FULLSCREEN)
         else:
@@ -766,7 +766,7 @@ class DefenseZone3HD:
         self.retraso_oleada = 10000
         self.ultimo_tiempo_oleada = 0
         
-        # Camino escalado proporcionalmente a la resolución
+        
         escala_x = ANCHO_VENTANA / 1300
         escala_y = ALTO_VENTANA / 800
         
@@ -787,7 +787,7 @@ class DefenseZone3HD:
         
         self.tipo_torre_seleccionada = 'cañon'
         
-        # Fuentes escaladas según resolución
+        
         tamaño_base = max(24, int(32 * min(escala_x, escala_y)))
         tamaño_pequeño = max(18, int(24 * min(escala_x, escala_y)))
         
@@ -798,7 +798,7 @@ class DefenseZone3HD:
         self.interfaz = Interfaz(self.pantalla, self.fuente, self.fuente_pequeña)
         self.tutorial = TutorialInteractivo(self)
         
-        # Sistema de sonidos integrado
+        
         self.sonidos_disparo = {}
         self._cargar_sonidos()
 
@@ -812,7 +812,7 @@ class DefenseZone3HD:
             }
         except pygame.error:
             print("No se pudieron cargar los sonidos de disparo")
-            # Crear diccionario vacío si no se pueden cargar los sonidos
+            
             self.sonidos_disparo = {}
 
     def manejar_eventos(self):
@@ -956,41 +956,41 @@ class DefenseZone3HD:
         if self.estado_juego == EstadoJuego.TUTORIAL:
             self.tutorial.actualizar(dt)
         
-        # Actualizar enemigos
+        
         for enemigo in self.enemigos[:]:
             enemigo.actualizar(dt)
             if not enemigo.activo:
                 if hasattr(enemigo, 'indice_ruta') and enemigo.indice_ruta >= len(enemigo.ruta) - 1:
-                    # Enemigo llegó al final - quitar vida
+                    
                     self.gestor_recursos.gastar('vidas', 1)
                     vidas_actuales = self.gestor_recursos.obtener('vidas')
                     if vidas_actuales <= 0:
                         self.estado_juego = EstadoJuego.GAME_OVER
                 else:
-                    # Enemigo eliminado por daño - dar recompensa
+                    
                     if hasattr(enemigo, 'recompensa'):
                         self.gestor_recursos.ganar('dinero', enemigo.recompensa)
                     else:
-                        # Recompensa por defecto si no tiene atributo
+                        
                         self.gestor_recursos.ganar('dinero', 15)
                 self.enemigos.remove(enemigo)
         
-        # Actualizar torres CON SONIDOS
+        
         tiempo_actual = pygame.time.get_ticks()
         for torre in self.torres:
             torre.objetivo = torre.encontrar_objetivo(self.enemigos)
             if torre.objetivo and torre.puede_disparar(tiempo_actual):
                 torre.disparar(torre.objetivo, self.proyectiles, self.sonidos_disparo)
         
-        # Actualizar proyectiles Y verificar colisiones
+        
         for proyectil in self.proyectiles[:]:
             proyectil.actualizar(dt)
             
-            # Verificar colisiones con enemigos
+            
             if proyectil.activo:
                 for enemigo in self.enemigos:
                     if proyectil.verificar_colision(enemigo):
-                        # Aplicar daño al enemigo
+                        
                         if hasattr(enemigo, 'recibir_daño'):
                             enemigo.recibir_daño(proyectil.daño)
                         elif hasattr(enemigo, 'hp'):
@@ -998,15 +998,15 @@ class DefenseZone3HD:
                             if enemigo.hp <= 0:
                                 enemigo.activo = False
                         
-                        # Desactivar proyectil después del impacto
+                        
                         proyectil.activo = False
                         break
             
-            # Remover proyectiles inactivos
+            
             if not proyectil.activo:
                 self.proyectiles.remove(proyectil)
         
-        # Solo generar oleadas si está jugando (no en tutorial)
+        
         if self.estado_juego == EstadoJuego.JUGANDO:
             if len(self.enemigos) == 0 and tiempo_actual - self.ultimo_tiempo_oleada > self.retraso_oleada:
                 self.ultimo_tiempo_oleada = tiempo_actual
@@ -1059,27 +1059,27 @@ class DefenseZone3HD:
             self.pantalla.blit(texto_boton, rect_texto)
 
     def dibujar_juego(self):
-        # Dibujar camino
+        
         if len(self.camino) > 1:
             pygame.draw.lines(self.pantalla, GRIS, False, self.camino, 5)
         
-        # Dibujar torres con rangos
+        
         for torre in self.torres:
             if hasattr(torre, 'dibujar'):
                 torre.dibujar(self.pantalla)
             else:
-                # Dibujo básico de torre
+                
                 pygame.draw.circle(self.pantalla, AZUL, (torre.x, torre.y), 20)
-                # Mostrar rango si es la torre seleccionada
+                
                 if hasattr(torre, 'rango'):
                     pygame.draw.circle(self.pantalla, (0, 0, 255, 50), (torre.x, torre.y), torre.rango, 1)
         
-        # Dibujar enemigos con barras de vida
+        
         for enemigo in self.enemigos:
             if hasattr(enemigo, 'dibujar'):
                 enemigo.dibujar(self.pantalla)
             else:
-                # Dibujo básico del enemigo
+                
                 color_enemigo = ROJO
                 if hasattr(enemigo, '__class__'):
                     if 'Rapido' in enemigo.__class__.__name__:
@@ -1089,10 +1089,10 @@ class DefenseZone3HD:
                 
                 pygame.draw.rect(self.pantalla, color_enemigo, (enemigo.x-10, enemigo.y-10, 20, 20))
             
-            # Dibujar barra de vida
+            
             self.dibujar_barra_vida_enemigo(enemigo)
         
-        # Dibujar proyectiles
+        
         for proyectil in self.proyectiles:
             proyectil.dibujar(self.pantalla)
         
@@ -1107,11 +1107,11 @@ class DefenseZone3HD:
                 x_barra = enemigo.x - ancho_barra // 2
                 y_barra = enemigo.y - 20
                 
-                # Fondo de la barra (rojo)
+                
                 pygame.draw.rect(self.pantalla, ROJO, 
                                (x_barra, y_barra, ancho_barra, alto_barra))
                 
-                # Vida actual (verde)
+                
                 porcentaje_vida = max(0, enemigo.hp / enemigo.hp_max)
                 ancho_vida = int(ancho_barra * porcentaje_vida)
                 pygame.draw.rect(self.pantalla, VERDE, 
@@ -1141,7 +1141,7 @@ class DefenseZone3HD:
             texto_oleada = self.fuente_pequeña.render(f"Oleada: {self.generador_oleadas.numero_oleada}", True, NEGRO)
             self.pantalla.blit(texto_oleada, (10, 70))
         
-        # Mostrar estadísticas adicionales
+        
         texto_enemigos = self.fuente_pequeña.render(f"Enemigos: {len(self.enemigos)}", True, NEGRO)
         self.pantalla.blit(texto_enemigos, (10, 100))
         
